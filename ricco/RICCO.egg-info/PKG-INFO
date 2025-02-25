@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: RICCO
+Version: 0.0.1
+Summary: A framework for circuit cutting and runtime complexity comparison with RICCO and QCut.
+Home-page: https://github.com/QSAR-UBC/RICCO-dev.git
+Author: Gideon Uchehara
+Author-email: gideon.uchehara@ece.ubc.ca
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.0.0
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+License-File: LICENSE
+
+# RICCO-dev
+This repo contains the code implementation of our paper on rotation-inspired circuit cut optimization.
+
+

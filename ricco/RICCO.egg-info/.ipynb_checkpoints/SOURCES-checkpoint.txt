@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+src/RICCO.egg-info/PKG-INFO
+src/RICCO.egg-info/SOURCES.txt
+src/RICCO.egg-info/dependency_links.txt
+src/RICCO.egg-info/requires.txt
+src/RICCO.egg-info/top_level.txt

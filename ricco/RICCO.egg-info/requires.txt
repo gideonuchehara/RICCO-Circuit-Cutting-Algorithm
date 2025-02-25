@@ -1,0 +1,7 @@
+pennylane==0.28.0
+numpy==1.23.5
+
+[dev]
+pytest
+opt_einsum
+jupyter
