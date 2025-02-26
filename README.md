@@ -54,11 +54,6 @@ To use **RICCO**, you need to install the required dependencies. The code is imp
    pip install -r requirements.txt
    ```
 
-3. Verify the installation by running a simple test script:
-
-   ```bash
-   python test_installation.py
-   ```
 
 ## Usage
 
