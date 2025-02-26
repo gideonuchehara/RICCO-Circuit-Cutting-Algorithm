@@ -1,126 +1,210 @@
 # RICCO: Rotation-Inspired Circuit Cut Optimization
 
-![RICCO Banner](https://github.com/gideonuchehara/RICCO-Circuit-Cutting-Algorithm/raw/main/assets/banner.png)
+## Overview
 
-## 📌 Introduction
-**RICCO (Rotation-Inspired Circuit Cut Optimization)** is an advanced quantum circuit-cutting algorithm designed to optimize circuit fragmentation by applying unitary transformations to MeasureNodes and updating their corresponding PrepareNodes. This method enhances post-processing efficiency and fidelity in circuit-cutting applications, allowing for scalable quantum computations.
+This repository contains the implementation of the **Rotation-Inspired Circuit Cut Optimization (RICCO)** algorithm, as described in the paper:
 
-This repository provides an implementation of the **RICCO** method as presented in the research paper:
-> **"Rotation-Inspired Circuit Cut Optimization"** ([IEEE QCS 2022](https://www.computer.org/csdl/proceedings-article/qcs/2022/753600a050/1KnWBzpcrHq) | [arXiv version](https://arxiv.org/abs/2211.07358))
+**Title**: Rotation-Inspired Circuit Cut Optimization  
+**Authors**: Gideon Uchehara, Tor M. Aamodt, Olivia Di Matteo  
+**Conference**: IEEE International Conference on Quantum Computing and Engineering (QCE) 2022  
+**Paper Link**: [IEEE Xplore](https://www.computer.org/csdl/proceedings-article/qcs/2022/753600a050/1KnWBzpcrHq)  
+**arXiv Version**: [arXiv:2211.07358](https://arxiv.org/abs/2211.07358)  
 
-## 🚀 Features
-✔️ **Automated Quantum Circuit Cutting**: Splits large quantum circuits into smaller subcircuits.  
-✔️ **Optimized Unitary Transformations**: Applies Strongly Entangling Layers to MeasureNodes.  
-✔️ **Parameter Optimization**: Uses gradient-based optimization to refine unitary parameters.  
-✔️ **Seamless Integration**: Built on PennyLane, ensuring compatibility with various quantum backends.  
-✔️ **Reconstruction of Quantum Circuits**: Efficient post-processing using tensor contraction.  
+**RICCO** is a novel method for reducing the post-processing overhead of quantum circuit cutting by introducing parameterized unitary rotations at cut locations. This approach reduces the number of quantum circuit executions required to reconstruct the output of a large quantum circuit, making it more efficient for execution on small-scale quantum devices.
 
-## 🛠 Installation
-To install RICCO and its dependencies, follow these steps:
+## Table of Contents
 
-### 1️⃣ **Clone the Repository**
-```bash
-$ git clone https://github.com/gideonuchehara/RICCO-Circuit-Cutting-Algorithm.git
-$ cd RICCO-Circuit-Cutting-Algorithm
-```
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Algorithm Overview](#algorithm-overview)
+- [Examples](#examples)
+- [Results](#results)
+- [Contributing](#contributing)
+- [License](#license)
+- [Citation](#citation)
 
-### 2️⃣ **Create a Virtual Environment (Optional but Recommended)**
-```bash
-$ python -m venv ricco_env
-$ source ricco_env/bin/activate  # On macOS/Linux
-$ ricco_env\Scripts\activate    # On Windows
-```
+## Introduction
 
-### 3️⃣ **Install Dependencies**
-```bash
-$ pip install -r requirements.txt
-```
+Quantum circuit cutting is a technique that allows large quantum circuits to be divided into smaller subcircuits, which can be executed on smaller quantum devices. However, classical post-processing to reconstruct the original circuit's output is computationally expensive, scaling exponentially with the number of cuts. **RICCO** addresses this issue by introducing **parameterized unitary rotations** at cut locations, optimizing these rotations to align the quantum state with specific observables, thereby reducing the number of measurements required.
 
-## 📜 Usage
-### **Basic Example: Running RICCO on a Quantum Circuit**
+This repository provides the implementation of **RICCO**, along with examples and tools to simulate and analyze its performance.
+
+## Installation
+
+To use **RICCO**, you need to install the required dependencies. The code is implemented in **Python** and uses the **PennyLane** library for quantum circuit simulation and optimization.
+
+### Prerequisites
+
+- Python 3.7 or higher
+- pip (Python package manager)
+
+### Installation Steps
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/gideonuchehara/RICCO-Circuit-Cutting-Algorithm.git
+   cd RICCO-Circuit-Cutting-Algorithm
+   ```
+
+2. Install the required Python packages:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Verify the installation by running a simple test script:
+
+   ```bash
+   python test_installation.py
+   ```
+
+## Usage
+
+The **RICCO** algorithm is implemented in the `ricco.py` file. You can use it to optimize quantum circuit cuts and reconstruct the output of large quantum circuits.
+
+### Basic Usage
+
+#### Define Your Quantum Circuit
+
+Use **PennyLane** to define your quantum circuit. For example:
+
 ```python
 import pennylane as qml
-from pennylane import numpy as np
-from ricco.utils import generate_random_circuit
 
-num_qubits = 5
-num_cuts=1
-seed_u = 103
-seed_v = 105
+dev = qml.device("default.qubit", wires=4)
 
-# Initialize device for RICCO optimization
-dev = qml.device("default.qubit", wires=range(num_qubits))
-
-# Define and create a QNode for the generated quantum circuit
-random_circuit_qnode = qml.QNode(generate_random_circuit, device=dev)
-
-# Update QNode and Compute expectation value of the uncut circuit
-uncut_random_circuit_expval = random_circuit_qnode(
-    num_qubits, num_cuts, seed_u, seed_v)
-
-# Optionally display the uncut circuit
-fig1, ax = qml.draw_mpl(random_circuit_qnode)(num_qubits, num_cuts, 
-                                              seed_u, seed_v)
-
-tape = random_circuit_qnode.qtape
-
-
-from ricco.algorithm import RICCO
-# Initialize RICCO
-ricco = RICCO(random_circuit_qnode, num_cuts, dev, entangling_layers=3)
-
-# Run multiple trials and compute the average expectation value
-ricco.run_multiple_trials(iterations=1)
-
-# Access the mean expectation value
-print("Mean Expectation Value (from attribute):", ricco.mean_expval)
+@qml.qnode(dev)
+def circuit(params):
+    qml.RX(params[0], wires=0)
+    qml.RY(params[1], wires=1)
+    qml.CNOT(wires=[0, 1])
+    return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
 ```
 
-### **Executing Optimization Process**
+#### Initialize RICCO
+
+Create an instance of the **RICCO** class with your circuit, number of cuts, and device:
+
 ```python
-ricco.optimize_unitary_rotations(steps=100, step_size=0.05, tol=1e-6)
-print("Optimized Parameters:", ricco.params)
+from ricco import RICCO
+
+num_cuts = 1
+ricco = RICCO(circuit, num_cuts, dev)
 ```
 
-## 🔬 Methodology
-### **Overview of Circuit Cutting**
-Quantum circuits can be partitioned into fragments to reduce hardware constraints. **RICCO** improves upon traditional circuit-cutting methods by introducing **unitary rotations** at the cut locations, optimizing expectation values for post-processing efficiency.
+#### Run the Optimization
 
-### **Key Steps in RICCO**
-1. **Circuit Partitioning**: Converts a quantum circuit into fragments using PennyLane's `qml.qcut`.
-2. **Unitary Optimization**: Replaces MeasureNodes with unitary transformations (Strongly Entangling Layers) and optimizes parameters.
-3. **Expectation Value Extraction**: Computes expectation values by executing the reconstructed subcircuits.
-4. **Post-Processing with Tensor Contraction**: Uses an efficient post-processing function to reconstruct original circuit outputs.
+Use the `reconstruct` method to optimize the circuit cuts and reconstruct the output:
 
-For a detailed explanation, refer to the **[paper](https://arxiv.org/abs/2211.07358)**.
+```python
+expectation_value = ricco.reconstruct()
+print("Expectation Value:", expectation_value)
+```
 
-## 📖 Citation
-If you use RICCO in your research, please cite:
+#### Run Multiple Trials
+
+To reduce randomness and improve accuracy, you can run multiple trials and compute the mean expectation value:
+
+```python
+mean_expval = ricco.run_multiple_trials(iterations=5)
+print("Mean Expectation Value:", mean_expval)
+```
+
+## Algorithm Overview
+
+The **RICCO** algorithm works as follows:
+
+1. **Circuit Cutting**:
+   - The quantum circuit is divided into smaller subcircuits at specified cut locations.
+   - Each cut introduces a **MeasureNode** and a **PrepareNode**.
+
+2. **Unitary Rotation**:
+   - A parameterized **unitary rotation** is applied at each cut location.
+   - The rotation is optimized to align the quantum state with specific observables (e.g., Pauli-Z).
+
+3. **Optimization**:
+   - The cost function is minimized to ensure that the expectation values of certain observables are maximized, while others are set to zero.
+   - This reduces the number of measurements required.
+
+4. **Reconstruction**:
+   - The results from the subcircuits are combined using classical post-processing to reconstruct the output of the original circuit.
+
+For more details, refer to the **paper**.
+
+## Examples
+
+### Example 1: Simple Circuit with 1 Cut
+
+```python
+import pennylane as qml
+from ricco import RICCO
+
+# Define a simple quantum circuit
+dev = qml.device("default.qubit", wires=2)
+
+@qml.qnode(dev)
+def circuit(params):
+    qml.RX(params[0], wires=0)
+    qml.RY(params[1], wires=1)
+    qml.CNOT(wires=[0, 1])
+    return qml.expval(qml.PauliZ(0) @ qml.PauliZ(1))
+
+# Initialize RICCO
+num_cuts = 1
+ricco = RICCO(circuit, num_cuts, dev)
+
+# Reconstruct the expectation value
+expectation_value = ricco.reconstruct()
+print("Expectation Value:", expectation_value)
+```
+
+### Example 2: Running Multiple Trials
+
+```python
+# Run multiple trials to reduce randomness
+mean_expval = ricco.run_multiple_trials(iterations=5)
+print("Mean Expectation Value:", mean_expval)
+```
+
+## Results
+
+The repository includes scripts to reproduce the results from the paper. You can find the following:
+
+- **Accuracy Comparison**: Compare the accuracy of RICCO with other circuit-cutting methods.
+- **Execution Count**: Analyze the number of quantum circuit executions required for RICCO and other methods.
+- **VQE Application**: Apply RICCO to the Variational Quantum Eigensolver (VQE) for molecular ground state energy estimation.
+
+To run the experiments, use the provided scripts in the `experiments/` directory.
+
+## Contributing
+
+Contributions to this repository are welcome! If you find any issues or have suggestions for improvements, please **open an issue** or **submit a pull request**.
+
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Commit your changes and push to the branch.
+4. Submit a pull request.
+
+## License
+
+This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+
+## Citation
+
+If you use **RICCO** in your research, please cite the following paper:
 
 ```bibtex
 @inproceedings{ricco2022,
-  author    = {Gideon Uchehara and Others},
-  title     = {Rotation-Inspired Circuit Cut Optimization},
-  booktitle = {IEEE International Conference on Quantum Computing and Engineering (QCS)},
-  year      = {2022},
-  url       = {https://arxiv.org/abs/2211.07358}
+  title={Rotation-Inspired Circuit Cut Optimization},
+  author={Uchehara, Gideon and Aamodt, Tor M and Di Matteo, Olivia},
+  booktitle={2022 IEEE International Conference on Quantum Computing and Engineering (QCE)},
+  pages={505--515},
+  year={2022},
+  organization={IEEE}
 }
 ```
 
-## 🤝 Contributing
-We welcome contributions! To contribute:
-1. **Fork the repository**
-2. **Create a new branch**
-3. **Make your changes**
-4. **Submit a pull request**
-
-## 📄 License
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-## 📬 Contact
-For questions or collaborations, reach out to **Gideon Uchehara** via [GitHub](https://github.com/gideonuchehara).
-
----
-
-⭐ If you find this project useful, please **star** this repository! ⭐
+For any questions or feedback, please contact **Gideon Uchehara**.
 
